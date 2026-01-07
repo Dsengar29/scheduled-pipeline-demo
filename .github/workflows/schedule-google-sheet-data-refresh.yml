@@ -2,7 +2,7 @@ name: Google Sheets Data Refresh
 
 on:
   schedule:
-    - cron: "0 7 * * *"   # Runs daily at 12:30 PM IST (07:00 UTC)
+    - cron: "38 7 * * *"   # 1:05 PM IST
   workflow_dispatch:
 
 jobs:
@@ -10,20 +10,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Python
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
       - name: Install dependencies
-        run: |
-          pip install gspread google-auth
+        run: pip install -r requirements.txt
 
       - name: Refresh Google Sheet
         env:
           GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
-        run: python refresh_google_sheet.py
+        run: python ./refresh_google_sheet.py
+        retry: 3
+
+      - name: Send Success Email
+        if: success()
+        env:
+          STATUS: SUCCESS
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: python ./send_email.py
+
+      - name: Send Failure Email
+        if: failure()
+        env:
+          STATUS: FAILURE
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: python ./send_email.py
 
