@@ -2,7 +2,7 @@ name: Google Sheets Data Refresh
 
 on:
   schedule:
-    - cron: "38 7 * * *"   # 1:05 PM IST
+    - cron: "47 7 * * *"   # 1:05 PM IST
   workflow_dispatch:
 
 jobs:
@@ -24,8 +24,12 @@ jobs:
       - name: Refresh Google Sheet
         env:
           GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
-        run: python ./refresh_google_sheet.py
-        retry: 3
+        run: |
+          for i in 1 2 3; do
+            python ./refresh_google_sheet.py && break
+            echo "Attempt $i failed. Retrying..."
+            sleep 5
+          done
 
       - name: Send Success Email
         if: success()
