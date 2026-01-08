@@ -1,33 +1,44 @@
 import os
 import json
+import sys
 import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
+import pytz
 
-# Load credentials from GitHub Secrets
-creds_dict = json.loads(os.environ["GOOGLE_CREDENTIALS"])
+try:
+    # Load credentials from GitHub Secrets
+    creds_dict = json.loads(os.environ["GOOGLE_CREDENTIALS"])
 
-scopes = ["https://www.googleapis.com/auth/spreadsheets"]
-credentials = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+    scopes = ["https://www.googleapis.com/auth/spreadsheets"]
+    credentials = Credentials.from_service_account_info(
+        creds_dict, scopes=scopes
+    )
 
-client = gspread.authorize(credentials)
+    client = gspread.authorize(credentials)
 
-# Name of your Google Sheet (must match exactly)
-SHEET_NAME = "TEST_PERFORMANCE_P1"
-sheet = client.open(SHEET_NAME).sheet1
+    # ✅ REPLACE WITH YOUR SHEET ID
+    SPREADSHEET_ID = "1Y9BfnGx832lwlLWNqVHnYzShj0N4hecvRZMbwdrHttk"
 
-# Example refreshed data
-now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-data = [
-    ["Last Refresh Time (UTC)", now],
-    ["Metric A", 123],
-    ["Metric B", 456],
-    ["Metric C", 789],
-]
+    sheet = client.open_by_key(SPREADSHEET_ID).sheet1
 
-# Clear old data and update
-sheet.clear()
-sheet.update("A1", data)
+    # IST time (easy to verify cron)
+    ist = pytz.timezone("Asia/Kolkata")
+    now = datetime.now(ist).strftime("%Y-%m-%d %H:%M:%S IST")
 
-print("Google Sheet refreshed successfully")
+    data = [
+        ["Last Refresh Time", now],
+        ["Metric A", 123],
+        ["Metric B", 456],
+        ["Metric C", 789],
+    ]
 
+    sheet.clear()
+    sheet.update("A1", data)
+
+    print(f"✅ Google Sheet refreshed successfully at {now}")
+
+except Exception as e:
+    print("❌ Failed to refresh Google Sheet")
+    print(str(e))
+    sys.exit(1)   # VERY IMPORTANT
